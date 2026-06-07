@@ -11,11 +11,5 @@ export default defineNuxtConfig({
       ]
     }
   },
-  $development: {
-    nitro: {
-      alias: {
-        'bun:sqlite': './server/utils/bun-sqlite-shim.ts'
-      }
-    }
-  }
+
 })

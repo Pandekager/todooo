@@ -1,6 +1,7 @@
-import { Database } from 'bun:sqlite'
+import { createClient } from '@libsql/client'
+import type { Client } from '@libsql/client'
 
-let _db: Database | null = null
+let _client: Client | null = null
 
 export const SCHEMA = `
   CREATE TABLE IF NOT EXISTS items (
@@ -12,23 +13,18 @@ export const SCHEMA = `
   )
 `
 
-export function getDatabase(): Database {
-  if (!_db) {
-    _db = new Database(process.env.NUXT_DATABASE_PATH || './data/todooo.db')
-    _db.run(SCHEMA)
+export async function getDatabase(): Promise<Client> {
+  if (!_client) {
+    _client = createClient({
+      url: `file:${process.env.NUXT_DATABASE_PATH || './data/todooo.db'}`,
+    })
+    await _client.execute(SCHEMA)
   }
-  return _db
+  return _client
 }
 
-export function createTestDatabase(): Database {
-  const db = new Database(':memory:')
-  db.run(SCHEMA)
-  return db
-}
-
-export function resetDatabase(): void {
-  if (_db) {
-    _db.close()
-    _db = null
-  }
+export async function createTestDatabase(): Promise<Client> {
+  const client = createClient({ url: ':memory:' })
+  await client.execute(SCHEMA)
+  return client
 }
