@@ -12,11 +12,8 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@ai-hero/sandcastle": "^0.7.0",
     "@libsql/client": "^0.17.3",
-    "@types/better-sqlite3": "^7.6.13",
     "@unocss/nuxt": "^66.7.0",
-    "better-sqlite3": "^12.10.0",
     "nuxt": "^4.4.7",
     "vue": "^3.5.35",
     "vue-router": "^5.1.0"
