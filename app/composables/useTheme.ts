@@ -14,18 +14,12 @@ export function useTheme() {
     : null
   const theme = ref<Theme>(saved ?? 'system')
 
-  const prefersDark = ref(
-    canMatchMedia
-      ? matchMedia('(prefers-color-scheme: dark)').matches
-      : false
-  )
+  const mql = canMatchMedia ? matchMedia('(prefers-color-scheme: dark)') : null
+  const prefersDark = ref(mql?.matches ?? false)
 
-  if (canMatchMedia) {
-    const mql = matchMedia('(prefers-color-scheme: dark)')
-    mql.addEventListener('change', (e: MediaQueryListEvent) => {
-      prefersDark.value = e.matches
-    })
-  }
+  mql?.addEventListener('change', (e: MediaQueryListEvent) => {
+    prefersDark.value = e.matches
+  })
 
   const resolvedTheme = computed(() => {
     if (theme.value === 'system') {
@@ -48,10 +42,8 @@ export function useTheme() {
   }, { flush: 'sync' })
 
   function toggleTheme() {
-    const order: Theme[] = ['light', 'dark', 'system']
-    const idx = order.indexOf(theme.value)
-    if (idx === -1) return
-    theme.value = order[(idx + 1) % order.length]!
+    const next: Record<Theme, Theme> = { light: 'dark', dark: 'system', system: 'light' }
+    theme.value = next[theme.value]
   }
 
   return {
