@@ -52,7 +52,7 @@ bun run typecheck
 
 - [Docker](https://docker.com)
 
-### Byg imagem
+### Byg image
 
 ```bash
 docker build -t todooo .
