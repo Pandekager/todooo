@@ -1,75 +1,127 @@
-# Nuxt Minimal Starter
+# Todooo
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+En simpel, selv-hostet checkliste — én liste, ingen konti. Tilgå den samme liste fra både PC og telefon på dit hjemmenetværk.
 
-## Setup
+Bygget med Nuxt 4, Bun, SQLite og UnoCSS. Kører i Docker på din hjemmeserver.
 
-Make sure to install dependencies:
+## Funktioner
+
+- Hurtig tilføjelse af punkter ("Tilføj...")
+- Check/uncheck med ét klik
+- Omarrangér aktive punkter via træk-og-slip eller Cmd+↑/↓
+- Redigér tekst inline
+- Arkivering af checkede punkter (sorteret nyest først)
+- Lys/mørk/system-tema
+- Spil glatte animationer ved check, uncheck og omarrangering
+
+## Kom i gang (udvikling)
+
+### Forudsætninger
+
+- [Bun](https://bun.sh) v1.3+
+
+### Installation
 
 ```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
 bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+### Udviklingsserver
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
 bun run dev
 ```
 
-## Production
+Åbn http://localhost:3000 i din browser.
 
-Build the application for production:
-
-```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
-```
-
-Locally preview production build:
+### Tests
 
 ```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+bun run test
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+### Typekontrol
+
+```bash
+bun run typecheck
+```
+
+## Docker
+
+### Forudsætninger
+
+- [Docker](https://docker.com)
+
+### Byg image
+
+```bash
+docker build -t todooo .
+```
+
+### Kør containeren
+
+Opret en Docker volume til at gemme databasen permanent:
+
+```bash
+docker volume create todooo-data
+```
+
+Start containeren:
+
+```bash
+docker run -d \
+  --name todooo \
+  -p 3000:3000 \
+  -v todooo-data:/data \
+  todooo
+```
+
+Alternativt kan du bind-mounte en lokal mappe:
+
+```bash
+mkdir -p ./data
+docker run -d \
+  --name todooo \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/data" \
+  todooo
+```
+
+### Adgang fra andre enheder på netværket
+
+1. Find din servers lokale IP-adresse:
+   - **Linux/macOS**: `ip addr show` eller `ifconfig`
+   - **Windows**: `ipconfig`
+2. Åbn `http://<SERVER_IP>:3000` på din telefon eller PC.
+
+Sørg for at port 3000 ikke er blokeret af din firewall.
+
+### Stop containeren
+
+```bash
+docker stop todooo
+```
+
+### Oprydning
+
+```bash
+docker rm todooo
+docker volume rm todooo-data
+```
+
+## Projektstruktur
+
+```
+app/              # Vue-komponenter (app.vue)
+server/           # API routes og database (Nitro + bun:sqlite)
+  api/            # REST endpoints
+  utils/          # database.ts (SQLite singleton)
+tests/            # Integrationstests (Vitest)
+  api/
+public/           # Statiske filer
+data/             # Lokal SQLite database (ikke i Git)
+```
+
+## Licens
+
+Privat — til personlig brug på hjemmenetværket.
