@@ -2,7 +2,7 @@ import { Database } from 'bun:sqlite'
 
 let _db: Database | null = null
 
-const SCHEMA = `
+export const SCHEMA = `
   CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY,
     text TEXT NOT NULL,

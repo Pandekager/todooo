@@ -1,22 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { Database } from 'bun:sqlite'
 import { createApp, createRouter, toNodeListener, defineEventHandler } from 'h3'
-import { createServer, AddressInfo } from 'node:http'
-
-const SCHEMA = `
-  CREATE TABLE IF NOT EXISTS items (
-    id INTEGER PRIMARY KEY,
-    text TEXT NOT NULL,
-    checked INTEGER NOT NULL DEFAULT 0,
-    checked_at INTEGER,
-    "order" INTEGER NOT NULL
-  )
-`
+import { createServer } from 'node:http'
+import { AddressInfo } from 'node:net'
+import { createTestDatabase } from '../../server/utils/database'
 
 describe('database layer', () => {
   it('initializes items table and returns empty lists', () => {
-    const db = new Database(':memory:')
-    db.run(SCHEMA)
+    const db = createTestDatabase()
 
     const active = db.prepare('SELECT * FROM items WHERE checked = 0 ORDER BY "order"').all()
     const completed = db.prepare('SELECT * FROM items WHERE checked = 1 ORDER BY checked_at DESC').all()
@@ -34,8 +25,7 @@ describe('GET /api/items integration', () => {
   let url: string
 
   beforeAll(() => {
-    db = new Database(':memory:')
-    db.run(SCHEMA)
+    db = createTestDatabase()
 
     const app = createApp()
     const router = createRouter()
