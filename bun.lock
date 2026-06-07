@@ -5,6 +5,7 @@
     "": {
       "name": "todooo",
       "dependencies": {
+        "@ai-hero/sandcastle": "^0.7.0",
         "nuxt": "^4.4.7",
         "vue": "^3.5.35",
         "vue-router": "^5.1.0",
@@ -12,6 +13,8 @@
     },
   },
   "packages": {
+    "@ai-hero/sandcastle": ["@ai-hero/sandcastle@0.7.0", "", { "dependencies": { "@clack/prompts": "^1.1.0" }, "peerDependencies": { "@daytona/sdk": "^0.164.0", "@vercel/sandbox": ">=1.0.0" }, "optionalPeers": ["@daytona/sdk", "@vercel/sandbox"], "bin": { "sandcastle": "dist/main.js" } }, "sha512-Rqb9FarzvtzDHqhBoofS7HqI1Tn5J/MuPoj+EVqO6F1jK1+Zzq+kT8Zl1K8Rs9ftLcLS0VKtQoPldn3UsSsGJw=="],
+
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
     "@babel/compat-data": ["@babel/compat-data@7.29.7", "", {}, "sha512-locTkQyKvwIEgBzVrn8693ebc97F2U8ZHjbXwDXJ5Fn2TCpNwTlKcaKLkdHop5c/icOFE7qt7Q9JC5hnKNa6Gg=="],
