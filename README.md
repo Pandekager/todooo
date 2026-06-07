@@ -113,7 +113,7 @@ docker volume rm todooo-data
 
 ```
 app/              # Vue-komponenter (app.vue)
-server/           # API routes og database (Nitro + bun:sqlite)
+server/           # API routes og database (Nitro + libsql)
   api/            # REST endpoints
   utils/          # database.ts (SQLite singleton)
 tests/            # Integrationstests (Vitest)
