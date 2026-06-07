@@ -30,7 +30,7 @@ import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 
 // Maximum number of plan→execute→merge cycles before stopping.
 // Raise this if your backlog is large; lower it for a quick smoke-test run.
-const MAX_ITERATIONS = 10;
+const MAX_ITERATIONS = 100;
 
 // Hooks run inside the sandbox before the agent starts each iteration.
 // bun install ensures the sandbox always has fresh dependencies.
