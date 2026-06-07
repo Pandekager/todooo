@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from '@libsql/client'
 import { createApp, createRouter, toNodeListener, defineEventHandler } from 'h3'
 import { createServer } from 'node:http'
-import { AddressInfo } from 'node:net'
+import { once } from 'node:events'
 import { createTestDatabase } from '../../server/utils/database'
 
 describe('database layer', () => {
@@ -38,14 +38,12 @@ describe('GET /api/items integration', () => {
 
     app.use(router)
     server = createServer(toNodeListener(app))
-
-    return new Promise<void>((resolve) => {
-      server.listen(0, () => {
-        const { port } = server.address() as AddressInfo
-        url = `http://localhost:${port}`
-        resolve()
-      })
-    })
+    server.listen(0)
+    await once(server, 'listening')
+    const address = server.address()
+    if (address && typeof address === 'object') {
+      url = `http://localhost:${address.port}`
+    }
   })
 
   afterAll(() => {

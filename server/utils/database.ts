@@ -28,10 +28,3 @@ export async function createTestDatabase(): Promise<Client> {
   await client.execute(SCHEMA)
   return client
 }
-
-export function resetDatabase(): void {
-  if (_client) {
-    _client.close()
-    _client = null
-  }
-}
