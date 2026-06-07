@@ -11,7 +11,8 @@ RUN bun run build
 FROM oven/bun:1 AS runner
 WORKDIR /app
 COPY --from=builder /app/.output ./.output
-RUN mkdir -p /data
+ENV NITRO_HOST=0.0.0.0
 ENV NUXT_DATABASE_PATH=/data/todooo.db
+RUN mkdir -p /data
 EXPOSE 3000
-CMD ["bun", ".output/server/index.mjs", "--host", "0.0.0.0"]
+CMD ["bun", ".output/server/index.mjs"]
