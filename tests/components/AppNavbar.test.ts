@@ -1,25 +1,17 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { compileSFC } from '../compiler-helper'
-import { parse } from 'vue/compiler-sfc'
-
-const STORAGE_KEY = 'todooo-theme'
 
 interface MockMQL {
   matches: boolean
   media: string
   onchange: null
-  _listeners: Set<(event: { matches: boolean }) => void>
   addEventListener: (event: string, handler: (event: { matches: boolean }) => void) => void
   removeEventListener: (event: string, handler: (event: { matches: boolean }) => void) => void
   dispatchEvent: () => boolean
 }
 
-let mockMql: MockMQL | null = null
-let origLocalStorage: Storage | undefined
-let origMatchMedia: ((query: string) => MediaQueryList) | undefined
-
-const noopMql = {
+const noopMql: MockMQL = {
   matches: false,
   media: '',
   onchange: null,
@@ -29,33 +21,20 @@ const noopMql = {
 }
 
 function setupMatchMedia(isDark: boolean) {
-  const listeners = new Set<(event: { matches: boolean }) => void>()
   const mql: MockMQL = {
     matches: isDark,
     media: '(prefers-color-scheme: dark)',
     onchange: null,
-    _listeners: listeners,
-    addEventListener: (_event: string, handler: (event: { matches: boolean }) => void) => {
-      listeners.add(handler)
-    },
-    removeEventListener: (_event: string, handler: (event: { matches: boolean }) => void) => {
-      listeners.delete(handler)
-    },
+    addEventListener: () => {},
+    removeEventListener: () => {},
     dispatchEvent: () => false,
   }
-  mockMql = mql
 
   ;(globalThis as any).matchMedia = (query: string) => {
     if (query === '(prefers-color-scheme: dark)') return mql
     return { ...noopMql, media: query }
   }
 }
-
-afterEach(() => {
-  if (origLocalStorage) (globalThis as any).localStorage = origLocalStorage
-  if (origMatchMedia) (globalThis as any).matchMedia = origMatchMedia
-  mockMql = null
-})
 
 describe('AppNavbar.vue SFC', () => {
   it('parses and compiles successfully', () => {
