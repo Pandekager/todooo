@@ -62,14 +62,15 @@ describe('items API integration', () => {
       if (rows.length === 0) {
         throw createError({ statusCode: 404, statusMessage: 'not found' })
       }
-      const item = rows[0] as any
+      const item = rows[0] as unknown as { id: number; text: string; checked: number; order: number }
       const newChecked = item.checked ? 0 : 1
       const now = Date.now()
+      const checkedAt = newChecked ? now : null
       await db.execute({
         sql: 'UPDATE items SET checked = ?, checked_at = ? WHERE id = ?',
-        args: [newChecked, newChecked ? now : null, id],
+        args: [newChecked, checkedAt, id],
       })
-      return { id, text: item.text, checked: newChecked, checked_at: newChecked ? now : null, order: item.order }
+      return { id, text: item.text, checked: newChecked, checked_at: checkedAt, order: item.order }
     }))
 
     app.use(router)
