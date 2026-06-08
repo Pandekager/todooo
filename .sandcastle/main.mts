@@ -17,19 +17,43 @@
 // issues are picked up after each round of merges.
 //
 // Usage:
-//   npx tsx .sandcastle/main.mts
-// Or add to package.json:
-//   "scripts": { "sandcastle": "npx tsx .sandcastle/main.mts" }
+//   bun run .sandcastle/main.mts
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
+import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Load environment variables from .sandcastle/.env so they can be passed
+// into the Docker sandbox containers (gh CLI needs GH_TOKEN, opencode needs
+// OPENCODE_API_KEY).
+const sandcastleDir = dirname(fileURLToPath(import.meta.url));
+function loadEnv(path: string): Record<string, string> {
+  try {
+    const content = readFileSync(path, "utf-8");
+    const env: Record<string, string> = {};
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx > 0) {
+        env[trimmed.slice(0, eqIdx)] = trimmed.slice(eqIdx + 1);
+      }
+    }
+    return env;
+  } catch {
+    return {};
+  }
+}
+const env = loadEnv(resolve(sandcastleDir, ".env"));
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
 // Maximum number of plan→execute→merge cycles before stopping.
-// Raise this if your backlog is large; lower it for a quick smoke-test run.
 const MAX_ITERATIONS = 100;
 
 // Hooks run inside the sandbox before the agent starts each iteration.
@@ -52,26 +76,17 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 
   // -------------------------------------------------------------------------
   // Phase 1: Plan
-  //
-  // The planning agent (opus, for deeper reasoning) reads the open issue list,
-  // builds a dependency graph, and selects the issues that can be worked in
-  // parallel right now (i.e., no blocking dependencies on other open issues).
-  //
-  // It outputs a <plan> JSON block — we parse that to drive Phase 2.
   // -------------------------------------------------------------------------
   const plan = await sandcastle.run({
+    env,
     hooks,
     sandbox: docker(),
     name: "planner",
-    // One iteration is enough: the planner just needs to read and reason,
-    // not write code.
     maxIterations: 1,
-    // Opus for planning: dependency analysis benefits from deeper reasoning.
     agent: sandcastle.opencode("opencode-go/deepseek-v4-flash"),
     promptFile: "./.sandcastle/plan-prompt.md",
   });
 
-  // Extract the <plan>…</plan> block from the agent's stdout.
   const planMatch = plan.stdout.match(/<plan>([\s\S]*?)<\/plan>/);
   if (!planMatch) {
     throw new Error(
@@ -79,13 +94,11 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     );
   }
 
-  // The plan JSON contains an array of issues, each with id, title, branch.
   const { issues } = JSON.parse(planMatch[1]!) as {
     issues: { id: string; title: string; branch: string }[];
   };
 
   if (issues.length === 0) {
-    // No unblocked work — either everything is done or everything is blocked.
     console.log("No unblocked issues to work on. Exiting.");
     break;
   }
@@ -99,17 +112,12 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 
   // -------------------------------------------------------------------------
   // Phase 2: Execute + Review
-  //
-  // For each issue, create a sandbox via createSandbox() so the implementer
-  // and reviewer share the same sandbox instance per branch. The implementer
-  // runs first; if it produces commits, the reviewer runs in the same sandbox.
-  //
-  // Promise.allSettled means one failing pipeline doesn't cancel the others.
   // -------------------------------------------------------------------------
 
   const settled = await Promise.allSettled(
     issues.map(async (issue) => {
       const sandbox = await sandcastle.createSandbox({
+        env,
         branch: issue.branch,
         sandbox: docker(),
         hooks,
@@ -142,8 +150,6 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
             },
           });
 
-          // Merge commits from both runs so the merge phase sees all of them.
-          // Each sandbox.run() only returns commits from its own run.
           return {
             ...review,
             commits: [...implement.commits, ...review.commits],
@@ -157,7 +163,6 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     }),
   );
 
-  // Log any agents that threw (network error, sandbox crash, etc.).
   for (const [i, outcome] of settled.entries()) {
     if (outcome.status === "rejected") {
       console.error(
@@ -166,8 +171,6 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     }
   }
 
-  // Only pass branches that actually produced commits to the merge phase.
-  // An agent that ran successfully but made no commits has nothing to merge.
   const completedIssues = settled
     .map((outcome, i) => ({ outcome, issue: issues[i]! }))
     .filter(
@@ -187,21 +190,15 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   }
 
   if (completedBranches.length === 0) {
-    // All agents ran but none made commits — nothing to merge this cycle.
     console.log("No commits produced. Nothing to merge.");
     continue;
   }
 
   // -------------------------------------------------------------------------
   // Phase 3: Merge
-  //
-  // One agent merges all completed branches into the current branch,
-  // resolving any conflicts and running tests to confirm everything works.
-  //
-  // The {{BRANCHES}} and {{ISSUES}} prompt arguments are lists that the agent
-  // uses to know which branches to merge and which issues to close.
   // -------------------------------------------------------------------------
   await sandcastle.run({
+    env,
     hooks,
     sandbox: docker(),
     name: "merger",
@@ -209,9 +206,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     agent: sandcastle.opencode("opencode-go/deepseek-v4-flash"),
     promptFile: "./.sandcastle/merge-prompt.md",
     promptArgs: {
-      // A markdown list of branch names, one per line.
       BRANCHES: completedBranches.map((b) => `- ${b}`).join("\n"),
-      // A markdown list of issue IDs and titles, one per line.
       ISSUES: completedIssues.map((i) => `- ${i.id}: ${i.title}`).join("\n"),
     },
   });
@@ -220,3 +215,9 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
 }
 
 console.log("\nAll done.");
+
+// Sandcastle Docker containers run bun install on Linux, which can strip
+// platform-specific native bindings from bun.lock. Restore them.
+console.log("Restoring host platform bindings...");
+execSync("bun install", { stdio: "inherit", cwd: resolve(sandcastleDir, "..") });
+console.log("Done.");
