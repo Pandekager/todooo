@@ -3,6 +3,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@unocss/nuxt'],
   css: ['@unocss/reset/tailwind.css'],
+  nitro: {
+    externals: {
+      inline: ['@libsql/client', '@libsql/hrana-client', '@libsql/isomorphic-ws'],
+    },
+  },
   app: {
     head: {
       title: 'Todooo',
