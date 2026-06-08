@@ -26,21 +26,36 @@ export function useItems() {
     items.value = [...data.active, ...data.completed]
   }
 
+  let nextTempId = -1
+
   async function addItem(text: string) {
-    const item = await $fetch<Item>('/api/items', {
-      method: 'POST',
-      body: { text },
-    })
-    items.value.push(item)
+    const tempItem: Item = { id: nextTempId--, text, checked: 0, checked_at: null, order: activeItems.value.length }
+    items.value.push(tempItem)
+    try {
+      const item = await $fetch<Item>('/api/items', {
+        method: 'POST',
+        body: { text },
+      })
+      const idx = items.value.findIndex(i => i.id === tempItem.id)
+      if (idx !== -1) items.value[idx] = item
+    } catch {
+      items.value = items.value.filter(i => i.id !== tempItem.id)
+      throw new Error('Kunne ikke tilføje — prøv igen')
+    }
   }
 
   async function toggleItem(item: Item) {
-    const updated = await $fetch<Item>(`/api/items/${item.id}`, {
-      method: 'PATCH',
-    })
     const index = items.value.findIndex(i => i.id === item.id)
-    if (index !== -1) {
+    if (index === -1) return
+    const original = { ...items.value[index] }
+    const now = Date.now()
+    items.value[index] = { ...original, checked: original.checked ? 0 : 1, checked_at: original.checked ? null : now }
+    try {
+      const updated = await $fetch<Item>(`/api/items/${item.id}`, { method: 'PATCH' })
       items.value[index] = updated
+    } catch {
+      items.value[index] = original
+      throw new Error('Kunne ikke ændre — prøv igen')
     }
   }
 
