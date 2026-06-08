@@ -49,9 +49,9 @@ export function useItems() {
         method: 'PATCH',
         body: { text: trimmed },
       })
-    } catch {
+    } catch (e) {
       item.text = original
-      throw new Error('failed to update item')
+      throw e
     }
   }
 

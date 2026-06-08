@@ -27,5 +27,6 @@ export default defineEventHandler(async (event) => {
     args: [trimmed, id],
   })
 
-  return { ...rows[0] as any, text: trimmed }
+  const row = rows[0] as unknown as { id: number; text: string; checked: number; checked_at: number | null; order: number }
+  return { ...row, text: trimmed }
 })
