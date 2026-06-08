@@ -4,9 +4,9 @@ type Theme = 'light' | 'dark' | 'system'
 
 const STORAGE_KEY = 'todooo-theme'
 
-const canLocalStorage = typeof localStorage !== 'undefined'
-const canMatchMedia = typeof matchMedia !== 'undefined'
-const canDocument = typeof document !== 'undefined'
+const canLocalStorage = typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function'
+const canMatchMedia = typeof matchMedia !== 'undefined' && typeof matchMedia === 'function'
+const canDocument = typeof document !== 'undefined' && typeof document.documentElement !== 'undefined'
 
 export function useTheme() {
   const saved = canLocalStorage
