@@ -5,7 +5,7 @@
         <AppNavbar />
         <main class="max-w-2xl mx-auto px-4 pt-22 pb-12">
             <h1 class="text-2xl font-bold text-center mb-8">
-                Todooo
+                Hvad skal der ske i dag? >:)
             </h1>
             <ClientOnly>
                 <ItemList
