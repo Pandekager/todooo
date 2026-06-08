@@ -42,7 +42,7 @@ const {
 const hasLoaded = ref(false);
 
 onMounted(async () => {
-    await fetchItems();
-    hasLoaded.value = true;
+    try { await fetchItems() } catch { /* server may be warming up */ }
+    hasLoaded.value = true
 });
 </script>
