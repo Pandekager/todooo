@@ -36,6 +36,7 @@
         @add="addItem"
         @toggle="toggleItem"
         @edit="updateText"
+        @reorder="reorderItems"
       />
     </main>
   </div>
@@ -43,7 +44,7 @@
 
 <script setup lang="ts">
 const { theme, toggleTheme } = useTheme()
-const { activeItems, completedItems, fetchItems, addItem, toggleItem, updateText } = useItems()
+const { activeItems, completedItems, fetchItems, addItem, toggleItem, updateText, reorderItems } = useItems()
 const hasLoaded = ref(false)
 
 onMounted(async () => {

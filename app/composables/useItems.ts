@@ -44,6 +44,45 @@ export function useItems() {
     }
   }
 
+  async function reorderItems(reorderedItems: Item[]) {
+    const payload = reorderedItems.map((item, index) => ({
+      id: item.id,
+      order: index,
+    }))
+    const original = items.value.map(i => ({ ...i }))
+    for (const { id, order } of payload) {
+      const item = items.value.find(i => i.id === id)
+      if (item) item.order = order
+    }
+    try {
+      await $fetch('/api/items/reorder', {
+        method: 'PATCH',
+        body: { items: payload },
+      })
+    } catch (e) {
+      for (const orig of original) {
+        const item = items.value.find(i => i.id === orig.id)
+        if (item) item.order = orig.order
+      }
+      throw e
+    }
+  }
+
+  async function moveItem(item: Item, direction: -1 | 1) {
+    const sorted = activeItems.value
+    const index = sorted.findIndex(i => i.id === item.id)
+    if (index === -1) return
+    const newIndex = index + direction
+    if (newIndex < 0 || newIndex >= sorted.length) return
+    const reordered = [...sorted]
+    const a = reordered[index]
+    const b = reordered[newIndex]
+    if (!a || !b) return
+    reordered[index] = b
+    reordered[newIndex] = a
+    await reorderItems(reordered)
+  }
+
   async function updateText(id: number, text: string) {
     const trimmed = text.trim()
     if (trimmed.length === 0) return
@@ -74,5 +113,7 @@ export function useItems() {
     addItem,
     toggleItem,
     updateText,
+    reorderItems,
+    moveItem,
   }
 }

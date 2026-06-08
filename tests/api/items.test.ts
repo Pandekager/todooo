@@ -85,6 +85,23 @@ describe('items API integration', () => {
       return { id, text: item.text, checked: newChecked, checked_at: checkedAt, order: item.order }
     }))
 
+    router.patch('/api/items/reorder', defineEventHandler(async (event) => {
+      const body = await readBody(event)
+      if (!body || !Array.isArray(body.items)) {
+        throw createError({ statusCode: 400, statusMessage: 'items array is required' })
+      }
+      for (const { id, order } of body.items) {
+        if (!Number.isFinite(id) || !Number.isFinite(order)) {
+          throw createError({ statusCode: 400, statusMessage: 'each item must have id and order' })
+        }
+        await db.execute({
+          sql: 'UPDATE items SET "order" = ? WHERE id = ? AND checked = 0',
+          args: [order, id],
+        })
+      }
+      return { success: true }
+    }))
+
     app.use(router)
     server = createServer(toNodeListener(app))
     server.listen(0)
@@ -266,6 +283,50 @@ describe('items API integration', () => {
     const updated = await patchRes.json()
     expect(updated.id).toBe(created.id)
     expect(updated.text).toBe('Køb smør')
+  })
+
+  it('reorders items via PATCH /api/items/reorder', async () => {
+    const r1 = await fetch(`${url}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'A' }),
+    })
+    const a = await r1.json()
+
+    const r2 = await fetch(`${url}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'B' }),
+    })
+    const b = await r2.json()
+
+    const r3 = await fetch(`${url}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'C' }),
+    })
+    const c = await r3.json()
+
+    const reorderRes = await fetch(`${url}/api/items/reorder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: [{ id: a.id, order: 2 }, { id: b.id, order: 1 }, { id: c.id, order: 0 }] }),
+    })
+    expect(reorderRes.status).toBe(200)
+
+    const getRes = await fetch(`${url}/api/items`)
+    const body = await getRes.json()
+    expect(body.active.map((i: any) => i.text)).toEqual(['C', 'B', 'A'])
+    expect(body.active.map((i: any) => i.order)).toEqual([0, 1, 2])
+  })
+
+  it('rejects reorder with missing items array', async () => {
+    const res = await fetch(`${url}/api/items/reorder`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    expect(res.status).toBe(400)
   })
 
   it('rejects empty text update with 400', async () => {
