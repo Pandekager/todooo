@@ -8,7 +8,7 @@
         Ingen ting på listen — ingen problemer :)
       </div>
       <div v-for="item in activeItems" :key="item.id">
-        <ItemDisplay :item="item" @toggle="$emit('toggle', item)" />
+        <ItemDisplay :item="item" @toggle="$emit('toggle', item)" @edit="(id, text) => $emit('edit', id, text)" />
       </div>
       <QuickAdd @add="$emit('add', $event)" />
       <div v-if="completedItems.length > 0" class="mt-8 border-t border-#eee dark:border-#333 pt-4">
@@ -35,7 +35,7 @@
         </button>
         <div v-if="expanded" class="mt-2">
           <div v-for="item in completedItems" :key="item.id">
-            <ItemDisplay :item="item" @toggle="$emit('toggle', item)" />
+            <ItemDisplay :item="item" @toggle="$emit('toggle', item)" @edit="(id, text) => $emit('edit', id, text)" />
           </div>
         </div>
       </div>
@@ -52,9 +52,10 @@ defineProps<{
   hasLoaded: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   add: [text: string]
   toggle: [item: Item]
+  edit: [id: number, text: string]
 }>()
 
 const expanded = ref(false)

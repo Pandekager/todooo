@@ -44,6 +44,27 @@ export function useItems() {
     }
   }
 
+  async function updateText(id: number, text: string) {
+    const trimmed = text.trim()
+    if (trimmed.length === 0) return
+
+    const item = items.value.find(i => i.id === id)
+    if (!item) return
+
+    const original = item.text
+    item.text = trimmed
+
+    try {
+      await $fetch<Item>(`/api/items/${id}`, {
+        method: 'PATCH',
+        body: { text: trimmed },
+      })
+    } catch (e) {
+      item.text = original
+      throw e
+    }
+  }
+
   return {
     items,
     activeItems,
@@ -52,5 +73,6 @@ export function useItems() {
     fetchItems,
     addItem,
     toggleItem,
+    updateText,
   }
 }

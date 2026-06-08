@@ -23,13 +23,18 @@ beforeEach(() => {
       mockItems.push(item)
       return item
     }
-    if (url.startsWith('/api/items/') && opts?.method === 'PATCH') {
-      const id = Number(url.split('/').pop())
+    const patchMatch = url.match(/^\/api\/items\/(\d+)$/)
+    if (patchMatch && opts?.method === 'PATCH') {
+      const id = Number(patchMatch[1])
       const item = mockItems.find(i => i.id === id)
       if (!item) throw new Error('not found')
-      const newChecked = item.checked ? 0 : 1
-      item.checked = newChecked
-      item.checked_at = newChecked ? Date.now() : null
+      if (opts.body && typeof opts.body.text === 'string') {
+        item.text = opts.body.text.trim()
+      } else {
+        const newChecked = item.checked ? 0 : 1
+        item.checked = newChecked
+        item.checked_at = newChecked ? Date.now() : null
+      }
       return { ...item }
     }
     throw new Error(`unexpected fetch: ${url}`)
@@ -176,5 +181,35 @@ describe('useItems', () => {
     expect(activeItems.value.map(i => i.text)).toEqual(['A', 'B', 'C'])
     expect(activeItems.value[1].order).toBe(1)
     expect(completedItems.value).toHaveLength(0)
+  })
+
+  it('updateText updates item text optimistically', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { items, addItem, updateText } = useItems()
+
+    await addItem('Original')
+    expect(items.value[0].text).toBe('Original')
+
+    await updateText(items.value[0].id, 'Updated')
+    expect(items.value[0].text).toBe('Updated')
+
+    const same = mockItems.find(i => i.id === items.value[0].id)
+    expect(same.text).toBe('Updated')
+  })
+
+  it('updateText restores original on failure', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { items, addItem, updateText } = useItems()
+
+    await addItem('Original')
+    expect(items.value[0].text).toBe('Original')
+
+    const oldFetch = (globalThis as any).$fetch
+    ;(globalThis as any).$fetch = async () => { throw new Error('network error') }
+
+    await expect(updateText(items.value[0].id, 'Updated')).rejects.toThrow()
+    expect(items.value[0].text).toBe('Original')
+
+    ;(globalThis as any).$fetch = oldFetch
   })
 })

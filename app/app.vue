@@ -35,6 +35,7 @@
         :has-loaded="hasLoaded"
         @add="addItem"
         @toggle="toggleItem"
+        @edit="updateText"
       />
     </main>
   </div>
@@ -42,7 +43,7 @@
 
 <script setup lang="ts">
 const { theme, toggleTheme } = useTheme()
-const { activeItems, completedItems, fetchItems, addItem, toggleItem } = useItems()
+const { activeItems, completedItems, fetchItems, addItem, toggleItem, updateText } = useItems()
 const hasLoaded = ref(false)
 
 onMounted(async () => {
