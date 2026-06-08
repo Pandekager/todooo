@@ -29,14 +29,20 @@
           </svg>
         </button>
       </div>
-      <ItemList :items="activeItems" :has-loaded="hasLoaded" @add="addItem" />
+      <ItemList
+        :active-items="activeItems"
+        :completed-items="completedItems"
+        :has-loaded="hasLoaded"
+        @add="addItem"
+        @toggle="toggleItem"
+      />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 const { theme, toggleTheme } = useTheme()
-const { activeItems, fetchItems, addItem } = useItems()
+const { activeItems, completedItems, fetchItems, addItem, toggleItem } = useItems()
 const hasLoaded = ref(false)
 
 onMounted(async () => {

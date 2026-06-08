@@ -34,6 +34,16 @@ export function useItems() {
     items.value.push(item)
   }
 
+  async function toggleItem(item: Item) {
+    const updated = await $fetch<Item>(`/api/items/${item.id}`, {
+      method: 'PATCH',
+    })
+    const index = items.value.findIndex(i => i.id === item.id)
+    if (index !== -1) {
+      items.value[index] = updated
+    }
+  }
+
   return {
     items,
     activeItems,
@@ -41,5 +51,6 @@ export function useItems() {
     archiveCount,
     fetchItems,
     addItem,
+    toggleItem,
   }
 }
