@@ -8,6 +8,8 @@
     role="button"
     @keydown.space.prevent="$emit('toggle')"
     @keydown.enter.prevent="enterEdit"
+    @keydown.meta.up.prevent="$emit('moveup')"
+    @keydown.meta.down.prevent="$emit('movedown')"
   >
     <template v-if="editing">
       <input
@@ -21,6 +23,14 @@
       />
     </template>
     <template v-else>
+      <span class="drag-handle inline-flex items-center justify-center w-5 h-5 cursor-grab shrink-0 text-#bbb dark:text-#666 hover:text-#888 dark:hover:text-#888 transition-colors"
+        title="Træk for at omarrangere">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="5" r="1" /><circle cx="15" cy="5" r="1" />
+          <circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" />
+          <circle cx="9" cy="19" r="1" /><circle cx="15" cy="19" r="1" />
+        </svg>
+      </span>
       <span
         class="inline-flex items-center justify-center w-5 h-5 rounded border-1.5 cursor-pointer shrink-0 transition-colors"
         :class="item.checked
@@ -47,6 +57,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggle: []
   edit: [id: number, text: string]
+  moveup: []
+  movedown: []
 }>()
 
 const editing = ref(false)

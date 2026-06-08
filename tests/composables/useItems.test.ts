@@ -37,12 +37,44 @@ beforeEach(() => {
       }
       return { ...item }
     }
+    if (url === '/api/items/reorder' && opts?.method === 'PATCH') {
+      const { items: reorderItems } = opts.body
+      for (const { id, order } of reorderItems) {
+        const item = mockItems.find(i => i.id === id)
+        if (item) item.order = order
+      }
+      return { success: true }
+    }
     throw new Error(`unexpected fetch: ${url}`)
   }
 })
 
 afterEach(() => {
   globalThis.$fetch = mockFetch
+})
+
+it('reorderItems persists and updates order of active items', async () => {
+  mockItems.push(
+    { id: 1, text: 'A', checked: 0, checked_at: null, order: 0 },
+    { id: 2, text: 'B', checked: 0, checked_at: null, order: 1 },
+    { id: 3, text: 'C', checked: 0, checked_at: null, order: 2 },
+  )
+
+  const { useItems } = await import('../../app/composables/useItems')
+  const { items, activeItems, reorderItems, fetchItems } = useItems()
+  await fetchItems()
+  expect(activeItems.value.map(i => i.text)).toEqual(['A', 'B', 'C'])
+
+  await reorderItems([items.value[2], items.value[0], items.value[1]])
+
+  expect(activeItems.value.map(i => i.text)).toEqual(['C', 'A', 'B'])
+  expect(activeItems.value.map(i => i.order)).toEqual([0, 1, 2])
+  const patchedA = mockItems.find(i => i.id === 1)
+  const patchedB = mockItems.find(i => i.id === 2)
+  const patchedC = mockItems.find(i => i.id === 3)
+  expect(patchedA!.order).toBe(1)
+  expect(patchedB!.order).toBe(2)
+  expect(patchedC!.order).toBe(0)
 })
 
 describe('useItems', () => {

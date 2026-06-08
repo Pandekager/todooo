@@ -7,8 +7,16 @@
       <div v-if="activeItems.length === 0 && completedItems.length === 0" class="text-center text-lg text-#888 dark:text-#999 mt-16">
         Ingen ting på listen — ingen problemer :)
       </div>
-      <div v-for="item in activeItems" :key="item.id">
-        <ItemDisplay :item="item" @toggle="$emit('toggle', item)" @edit="(id, text) => $emit('edit', id, text)" />
+      <div v-else :ref="(el: any) => { if (el) parentRef = el }">
+        <div v-for="item in valuesRef" :key="item.id">
+          <ItemDisplay
+            :item="item"
+            @toggle="$emit('toggle', item)"
+            @edit="(id, text) => $emit('edit', id, text)"
+            @moveup="moveUp(item)"
+            @movedown="moveDown(item)"
+          />
+        </div>
       </div>
       <QuickAdd @add="$emit('add', $event)" />
       <div v-if="completedItems.length > 0" class="mt-8 border-t border-#eee dark:border-#333 pt-4">
@@ -45,8 +53,10 @@
 
 <script setup lang="ts">
 import type { Item } from '../composables/useItems'
+import { useDragAndDrop } from '@formkit/drag-and-drop/vue'
+import { watch, ref } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   activeItems: Item[]
   completedItems: Item[]
   hasLoaded: boolean
@@ -56,7 +66,43 @@ const emit = defineEmits<{
   add: [text: string]
   toggle: [item: Item]
   edit: [id: number, text: string]
+  reorder: [items: Item[]]
 }>()
 
 const expanded = ref(false)
+
+const [parentRef, valuesRef] = useDragAndDrop<Item>([...props.activeItems], {
+  dragHandle: '.drag-handle',
+  onSort: (data) => {
+    emit('reorder', data.values as Item[])
+  },
+})
+
+watch(() => props.activeItems, (items) => {
+  valuesRef.value = [...items]
+})
+
+function moveUp(item: Item) {
+  const idx = valuesRef.value.findIndex(i => i.id === item.id)
+  if (idx <= 0) return
+  const reordered = [...valuesRef.value]
+  const a = reordered[idx - 1]
+  const b = reordered[idx]
+  if (!a || !b) return
+  reordered[idx - 1] = b
+  reordered[idx] = a
+  emit('reorder', reordered)
+}
+
+function moveDown(item: Item) {
+  const idx = valuesRef.value.findIndex(i => i.id === item.id)
+  if (idx < 0 || idx >= valuesRef.value.length - 1) return
+  const reordered = [...valuesRef.value]
+  const a = reordered[idx]
+  const b = reordered[idx + 1]
+  if (!a || !b) return
+  reordered[idx] = b
+  reordered[idx + 1] = a
+  emit('reorder', reordered)
+}
 </script>
