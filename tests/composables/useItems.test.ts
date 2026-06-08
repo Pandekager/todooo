@@ -69,7 +69,6 @@ it('reorderItems persists and updates order of active items', async () => {
 
   expect(activeItems.value.map(i => i.text)).toEqual(['C', 'A', 'B'])
   expect(activeItems.value.map(i => i.order)).toEqual([0, 1, 2])
-  // Verify items were reordered via mocking `$fetch` call
   const patchedA = mockItems.find(i => i.id === 1)
   const patchedB = mockItems.find(i => i.id === 2)
   const patchedC = mockItems.find(i => i.id === 3)

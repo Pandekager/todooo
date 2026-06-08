@@ -68,21 +68,6 @@ export function useItems() {
     }
   }
 
-  async function moveItem(item: Item, direction: -1 | 1) {
-    const sorted = activeItems.value
-    const index = sorted.findIndex(i => i.id === item.id)
-    if (index === -1) return
-    const newIndex = index + direction
-    if (newIndex < 0 || newIndex >= sorted.length) return
-    const reordered = [...sorted]
-    const a = reordered[index]
-    const b = reordered[newIndex]
-    if (!a || !b) return
-    reordered[index] = b
-    reordered[newIndex] = a
-    await reorderItems(reordered)
-  }
-
   async function updateText(id: number, text: string) {
     const trimmed = text.trim()
     if (trimmed.length === 0) return
@@ -114,6 +99,5 @@ export function useItems() {
     toggleItem,
     updateText,
     reorderItems,
-    moveItem,
   }
 }

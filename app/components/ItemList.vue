@@ -72,8 +72,8 @@ const emit = defineEmits<{
 const expanded = ref(false)
 
 const [parentRef, valuesRef] = useDragAndDrop<Item>([...props.activeItems], {
-  dragHandle: '.drag-handle' as any,
-  onSort: (data: any) => {
+  dragHandle: '.drag-handle',
+  onSort: (data) => {
     emit('reorder', data.values as Item[])
   },
 })
@@ -89,7 +89,8 @@ function moveUp(item: Item) {
   const a = reordered[idx - 1]
   const b = reordered[idx]
   if (!a || !b) return
-  ;[reordered[idx - 1], reordered[idx]] = [b, a]
+  reordered[idx - 1] = b
+  reordered[idx] = a
   emit('reorder', reordered)
 }
 
@@ -100,7 +101,8 @@ function moveDown(item: Item) {
   const a = reordered[idx]
   const b = reordered[idx + 1]
   if (!a || !b) return
-  ;[reordered[idx], reordered[idx + 1]] = [b, a]
+  reordered[idx] = b
+  reordered[idx + 1] = a
   emit('reorder', reordered)
 }
 </script>
