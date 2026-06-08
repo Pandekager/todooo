@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 const mockItems: any[] = []
-let mockFetch: any
+let mockFetch: typeof globalThis.$fetch
 
 beforeEach(() => {
   mockItems.length = 0
   mockFetch = globalThis.$fetch
-  ;(globalThis as any).$fetch = async (url: string, opts?: any) => {
+  globalThis.$fetch = async (url: string, opts?: any) => {
     if (url === '/api/items' && (!opts || opts.method === 'GET')) {
       const active = mockItems
         .filter(i => !i.checked)
@@ -28,7 +28,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  ;(globalThis as any).$fetch = mockFetch
+  globalThis.$fetch = mockFetch
 })
 
 describe('useItems', () => {
