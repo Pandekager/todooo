@@ -48,13 +48,11 @@
           Arkiv ({{ completedItems.length }})
         </button>
         <Transition name="archive">
-          <div v-if="expanded" class="mt-2">
-            <TransitionGroup tag="div" name="list">
-              <div v-for="item in completedItems" :key="item.id">
-                <ItemDisplay :item="item" @toggle="$emit('toggle', item)" @edit="(id, text) => $emit('edit', id, text)" />
-              </div>
-            </TransitionGroup>
-          </div>
+          <TransitionGroup v-if="expanded" tag="div" name="list" class="mt-2">
+            <div v-for="item in completedItems" :key="item.id">
+              <ItemDisplay :item="item" @toggle="$emit('toggle', item)" @edit="(id, text) => $emit('edit', id, text)" />
+            </div>
+          </TransitionGroup>
         </Transition>
       </div>
     </template>
