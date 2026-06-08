@@ -22,6 +22,7 @@
   "devDependencies": {
     "@nuxt/test-utils": "^4.0.3",
     "@types/bun": "^1.3.14",
+    "@vue/test-utils": "^2.4.11",
     "happy-dom": "^20.10.2",
     "vitest": "^4.1.8"
   }
