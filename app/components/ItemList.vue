@@ -7,7 +7,13 @@
       <div v-if="activeItems.length === 0 && completedItems.length === 0" class="text-center text-lg text-#888 dark:text-#999 mt-16">
         Ingen ting på listen — ingen problemer :)
       </div>
-      <div v-else :ref="(el: any) => { if (el) parentRef = el }">
+      <TransitionGroup
+        v-else
+        tag="div"
+        name="list"
+        class="relative"
+        :ref="(el: any) => { if (el?.$el) parentRef = el.$el }"
+      >
         <div v-for="item in valuesRef" :key="item.id">
           <ItemDisplay
             :item="item"
@@ -17,7 +23,7 @@
             @movedown="moveDown(item)"
           />
         </div>
-      </div>
+      </TransitionGroup>
       <QuickAdd @add="$emit('add', $event)" />
       <div v-if="completedItems.length > 0" class="mt-8 border-t border-#eee dark:border-#333 pt-4">
         <button
@@ -41,11 +47,15 @@
           </svg>
           Arkiv ({{ completedItems.length }})
         </button>
-        <div v-if="expanded" class="mt-2">
-          <div v-for="item in completedItems" :key="item.id">
-            <ItemDisplay :item="item" @toggle="$emit('toggle', item)" @edit="(id, text) => $emit('edit', id, text)" />
+        <Transition name="archive">
+          <div v-if="expanded" class="mt-2">
+            <TransitionGroup tag="div" name="list">
+              <div v-for="item in completedItems" :key="item.id">
+                <ItemDisplay :item="item" @toggle="$emit('toggle', item)" @edit="(id, text) => $emit('edit', id, text)" />
+              </div>
+            </TransitionGroup>
           </div>
-        </div>
+        </Transition>
       </div>
     </template>
   </div>
@@ -106,3 +116,47 @@ function moveDown(item: Item) {
   emit('reorder', reordered)
 }
 </script>
+
+<style>
+.list-enter-active,
+.list-leave-active,
+.list-move {
+  transition: all 0.25s ease;
+}
+
+.list-enter-from {
+  opacity: 0;
+  transform: translateY(-16px);
+}
+
+.list-leave-active {
+  position: absolute;
+}
+
+.list-leave-to {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.archive-enter-active,
+.archive-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.archive-enter-from,
+.archive-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-enter-active,
+  .list-leave-active,
+  .list-move,
+  .archive-enter-active,
+  .archive-leave-active {
+    transition: none;
+  }
+}
+</style>
