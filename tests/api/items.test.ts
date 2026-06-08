@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Client } from '@libsql/client'
-import { createApp, createRouter, toNodeListener, defineEventHandler, readBody, createError } from 'h3'
+import { createApp, createRouter, toNodeListener, defineEventHandler, readBody, getRouterParam, createError } from 'h3'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
 import { createTestDatabase } from '../../server/utils/database'
@@ -51,6 +51,26 @@ describe('items API integration', () => {
       })
       const id = Number(result.lastInsertRowid)
       return { id, text: body.text.trim(), checked: 0, checked_at: null, order: nextOrder }
+    }))
+
+    router.patch('/api/items/:id', defineEventHandler(async (event) => {
+      const id = Number(getRouterParam(event, 'id'))
+      if (isNaN(id)) {
+        throw createError({ statusCode: 400, statusMessage: 'invalid id' })
+      }
+      const { rows } = await db.execute({ sql: 'SELECT * FROM items WHERE id = ?', args: [id] })
+      if (rows.length === 0) {
+        throw createError({ statusCode: 404, statusMessage: 'not found' })
+      }
+      const item = rows[0] as unknown as { id: number; text: string; checked: number; order: number }
+      const newChecked = item.checked ? 0 : 1
+      const now = Date.now()
+      const checkedAt = newChecked ? now : null
+      await db.execute({
+        sql: 'UPDATE items SET checked = ?, checked_at = ? WHERE id = ?',
+        args: [newChecked, checkedAt, id],
+      })
+      return { id, text: item.text, checked: newChecked, checked_at: checkedAt, order: item.order }
     }))
 
     app.use(router)
@@ -137,5 +157,83 @@ describe('items API integration', () => {
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
+  })
+
+  it('checks an active item via PATCH and moves it to completed', async () => {
+    const createRes = await fetch(`${url}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'Gør noget' }),
+    })
+    const created = await createRes.json()
+
+    const patchRes = await fetch(`${url}/api/items/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(patchRes.status).toBe(200)
+    const patched = await patchRes.json()
+    expect(patched.checked).toBe(1)
+    expect(patched.checked_at).toBeTypeOf('number')
+    expect(patched.order).toBe(created.order)
+
+    const getRes = await fetch(`${url}/api/items`)
+    const body = await getRes.json()
+    expect(body.active).toHaveLength(0)
+    expect(body.completed).toHaveLength(1)
+    expect(body.completed[0].id).toBe(created.id)
+  })
+
+  it('unchecks a completed item via PATCH and restores it to active', async () => {
+    const createRes = await fetch(`${url}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'Gør noget' }),
+    })
+    const created = await createRes.json()
+
+    await fetch(`${url}/api/items/${created.id}`, { method: 'PATCH' })
+    const uncheckRes = await fetch(`${url}/api/items/${created.id}`, { method: 'PATCH' })
+    expect(uncheckRes.status).toBe(200)
+    const unchecked = await uncheckRes.json()
+    expect(unchecked.checked).toBe(0)
+    expect(unchecked.checked_at).toBeNull()
+    expect(unchecked.order).toBe(created.order)
+
+    const getRes = await fetch(`${url}/api/items`)
+    const body = await getRes.json()
+    expect(body.active).toHaveLength(1)
+    expect(body.active[0].id).toBe(created.id)
+    expect(body.completed).toEqual([])
+  })
+
+  it('orders completed items by checked_at DESC', async () => {
+    const r1 = await fetch(`${url}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'First' }),
+    })
+    const first = await r1.json()
+
+    const r2 = await fetch(`${url}/api/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'Second' }),
+    })
+    const second = await r2.json()
+
+    await fetch(`${url}/api/items/${second.id}`, { method: 'PATCH' })
+    await new Promise(r => setTimeout(r, 10))
+    await fetch(`${url}/api/items/${first.id}`, { method: 'PATCH' })
+
+    const getRes = await fetch(`${url}/api/items`)
+    const body = await getRes.json()
+    expect(body.completed.map((i: any) => i.text)).toEqual(['First', 'Second'])
+    expect(body.completed[0].checked_at).toBeGreaterThan(body.completed[1].checked_at)
+  })
+
+  it('returns 404 when patching a non-existent item', async () => {
+    const res = await fetch(`${url}/api/items/99999`, { method: 'PATCH' })
+    expect(res.status).toBe(404)
   })
 })

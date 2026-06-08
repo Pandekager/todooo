@@ -23,6 +23,15 @@ beforeEach(() => {
       mockItems.push(item)
       return item
     }
+    if (url.startsWith('/api/items/') && opts?.method === 'PATCH') {
+      const id = Number(url.split('/').pop())
+      const item = mockItems.find(i => i.id === id)
+      if (!item) throw new Error('not found')
+      const newChecked = item.checked ? 0 : 1
+      item.checked = newChecked
+      item.checked_at = newChecked ? Date.now() : null
+      return { ...item }
+    }
     throw new Error(`unexpected fetch: ${url}`)
   }
 })
@@ -91,5 +100,81 @@ describe('useItems', () => {
     await fetchItems()
     expect(items.value).toHaveLength(0)
     expect(activeItems.value).toHaveLength(0)
+  })
+
+  it('toggleItem checks an active item and moves it to completed', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { items, activeItems, completedItems, fetchItems, toggleItem } = useItems()
+
+    mockItems.push({ id: 1, text: 'A', checked: 0, checked_at: null, order: 0 })
+    await fetchItems()
+
+    expect(activeItems.value).toHaveLength(1)
+    expect(completedItems.value).toHaveLength(0)
+
+    await toggleItem(items.value[0])
+
+    expect(activeItems.value).toHaveLength(0)
+    expect(completedItems.value).toHaveLength(1)
+    expect(completedItems.value[0].checked).toBe(1)
+    expect(completedItems.value[0].checked_at).toBeTypeOf('number')
+  })
+
+  it('toggleItem unchecks a completed item and returns it to active', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { items, activeItems, completedItems, fetchItems, toggleItem } = useItems()
+
+    mockItems.push(
+      { id: 1, text: 'A', checked: 0, checked_at: null, order: 0 },
+      { id: 2, text: 'Done', checked: 1, checked_at: 100, order: 1 },
+    )
+    await fetchItems()
+
+    expect(activeItems.value).toHaveLength(1)
+    expect(completedItems.value).toHaveLength(1)
+
+    await toggleItem(items.value[1])
+
+    expect(activeItems.value).toHaveLength(2)
+    expect(activeItems.value.map(i => i.text)).toEqual(['A', 'Done'])
+    expect(completedItems.value).toHaveLength(0)
+    expect(items.value[1].checked).toBe(0)
+    expect(items.value[1].checked_at).toBeNull()
+  })
+
+  it('archiveCount reflects completed items', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { archiveCount, fetchItems } = useItems()
+
+    mockItems.push(
+      { id: 1, text: 'Active', checked: 0, checked_at: null, order: 0 },
+      { id: 2, text: 'Done1', checked: 1, checked_at: 200, order: 1 },
+      { id: 3, text: 'Done2', checked: 1, checked_at: 100, order: 2 },
+    )
+    await fetchItems()
+
+    expect(archiveCount.value).toBe(2)
+  })
+
+  it('toggleItem restores item to previous order position', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { items, activeItems, completedItems, fetchItems, toggleItem } = useItems()
+
+    mockItems.push(
+      { id: 1, text: 'A', checked: 0, checked_at: null, order: 0 },
+      { id: 2, text: 'B', checked: 0, checked_at: null, order: 1 },
+      { id: 3, text: 'C', checked: 0, checked_at: null, order: 2 },
+    )
+    await fetchItems()
+    expect(activeItems.value.map(i => i.text)).toEqual(['A', 'B', 'C'])
+
+    await toggleItem(items.value[1])
+    expect(activeItems.value.map(i => i.text)).toEqual(['A', 'C'])
+    expect(completedItems.value.map(i => i.text)).toEqual(['B'])
+
+    await toggleItem(items.value[1])
+    expect(activeItems.value.map(i => i.text)).toEqual(['A', 'B', 'C'])
+    expect(activeItems.value[1].order).toBe(1)
+    expect(completedItems.value).toHaveLength(0)
   })
 })
