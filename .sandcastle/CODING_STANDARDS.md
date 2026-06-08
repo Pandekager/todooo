@@ -13,11 +13,13 @@
 
 - All tests live under `tests/` — API tests in `tests/api/`, composable tests in `tests/composables/`
 - Run with `bun run test` (maps to `vitest run`)
+- Run `bun run [test](test:smoke)` as a final step to validate the build
 - Test external behavior only — no asserting on internal implementation details
 - API tests verify HTTP status codes and persisted database state
 - Composable tests verify exposed reactive state and emitted events
 - Each test must be independent (reset state per test case)
 - Use descriptive test names that explain the expected behavior
+- Run `bun run [test](test:smoke)` as a final step to validate the build
 
 ## Architecture
 
@@ -32,5 +34,6 @@
 - `bun install` — install dependencies
 - `bun run dev` — start dev server
 - `bun run test` — run vitest test suite
+- `bun run test:smoke` — make build and run smoke tests
 - `bun run typecheck` — run Vue type checking
 - `bun run build` — production build

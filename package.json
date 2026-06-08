@@ -8,6 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "test": "bun test",
+    "test:smoke": "bun run build && SMOKE=1 bun test tests/smoke/production.test.ts",
     "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare"
   },
