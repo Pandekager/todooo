@@ -29,15 +29,20 @@
           </svg>
         </button>
       </div>
-      <p class="text-center text-lg text-#888 dark:text-#999 mt-16">
-        Ingen ting på listen — ingen problemer :)
-      </p>
+      <ItemList :items="activeItems" :has-loaded="hasLoaded" @add="addItem" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 const { theme, toggleTheme } = useTheme()
+const { activeItems, fetchItems, addItem } = useItems()
+const hasLoaded = ref(false)
+
+onMounted(async () => {
+  await fetchItems()
+  hasLoaded.value = true
+})
 
 const themeTitle = computed(() => {
   switch (theme.value) {
