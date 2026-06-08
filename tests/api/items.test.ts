@@ -53,6 +53,26 @@ describe('items API integration', () => {
       return { id, text: body.text.trim(), checked: 0, checked_at: null, order: nextOrder }
     }))
 
+    router.patch('/api/items/:id', defineEventHandler(async (event) => {
+      const id = Number(event.context.params?.id)
+      const body = await readBody(event)
+      if (!body || typeof body.text !== 'string' || body.text.trim() === '') {
+        throw createError({ statusCode: 400, statusMessage: 'text is required' })
+      }
+      const { rows } = await db.execute({
+        sql: 'SELECT * FROM items WHERE id = ?',
+        args: [id],
+      })
+      if (rows.length === 0) {
+        throw createError({ statusCode: 404, statusMessage: 'not found' })
+      }
+      await db.execute({
+        sql: 'UPDATE items SET text = ? WHERE id = ?',
+        args: [body.text.trim(), id],
+      })
+      return { ...rows[0] as any, text: body.text.trim() }
+    }))
+
     app.use(router)
     server = createServer(toNodeListener(app))
     server.listen(0)
@@ -137,5 +157,51 @@ describe('items API integration', () => {
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
+  })
+
+  describe('PATCH /api/items/:id', () => {
+    it('updates item text', async () => {
+      const createRes = await fetch(`${url}/api/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Køb mælk' }),
+      })
+      const created = await createRes.json()
+
+      const patchRes = await fetch(`${url}/api/items/${created.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Køb smør' }),
+      })
+      expect(patchRes.status).toBe(200)
+      const updated = await patchRes.json()
+      expect(updated.id).toBe(created.id)
+      expect(updated.text).toBe('Køb smør')
+    })
+
+    it('rejects empty text with 400', async () => {
+      const createRes = await fetch(`${url}/api/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Køb mælk' }),
+      })
+      const created = await createRes.json()
+
+      const res = await fetch(`${url}/api/items/${created.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: '' }),
+      })
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 404 for non-existent item', async () => {
+      const res = await fetch(`${url}/api/items/99999`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'whatever' }),
+      })
+      expect(res.status).toBe(404)
+    })
   })
 })

@@ -23,6 +23,14 @@ beforeEach(() => {
       mockItems.push(item)
       return item
     }
+    const patchMatch = url.match(/^\/api\/items\/(\d+)$/)
+    if (patchMatch && opts?.method === 'PATCH') {
+      const id = Number(patchMatch[1])
+      const item = mockItems.find(i => i.id === id)
+      if (!item) throw new Error('not found')
+      item.text = opts.body.text
+      return { ...item }
+    }
     throw new Error(`unexpected fetch: ${url}`)
   }
 })
@@ -91,5 +99,35 @@ describe('useItems', () => {
     await fetchItems()
     expect(items.value).toHaveLength(0)
     expect(activeItems.value).toHaveLength(0)
+  })
+
+  it('updateText updates item text optimistically', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { items, addItem, updateText } = useItems()
+
+    await addItem('Original')
+    expect(items.value[0].text).toBe('Original')
+
+    await updateText(items.value[0].id, 'Updated')
+    expect(items.value[0].text).toBe('Updated')
+
+    const same = mockItems.find(i => i.id === items.value[0].id)
+    expect(same.text).toBe('Updated')
+  })
+
+  it('updateText restores original on failure', async () => {
+    const { useItems } = await import('../../app/composables/useItems')
+    const { items, addItem, updateText } = useItems()
+
+    await addItem('Original')
+    expect(items.value[0].text).toBe('Original')
+
+    const oldFetch = (globalThis as any).$fetch
+    ;(globalThis as any).$fetch = async () => { throw new Error('network error') }
+
+    await expect(updateText(items.value[0].id, 'Updated')).rejects.toThrow()
+    expect(items.value[0].text).toBe('Original')
+
+    ;(globalThis as any).$fetch = oldFetch
   })
 })

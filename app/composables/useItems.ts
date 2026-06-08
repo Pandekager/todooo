@@ -34,6 +34,27 @@ export function useItems() {
     items.value.push(item)
   }
 
+  async function updateText(id: number, text: string) {
+    const trimmed = text.trim()
+    if (trimmed.length === 0) return
+
+    const item = items.value.find(i => i.id === id)
+    if (!item) return
+
+    const original = item.text
+    item.text = trimmed
+
+    try {
+      await $fetch<Item>(`/api/items/${id}`, {
+        method: 'PATCH',
+        body: { text: trimmed },
+      })
+    } catch {
+      item.text = original
+      throw new Error('failed to update item')
+    }
+  }
+
   return {
     items,
     activeItems,
@@ -41,5 +62,6 @@ export function useItems() {
     archiveCount,
     fetchItems,
     addItem,
+    updateText,
   }
 }
